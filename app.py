@@ -4,11 +4,12 @@ import tensorflow as tf
 import cv2
 import mediapipe as mp
 from keras.models import load_model
+from keras.preprocessing import image
 import numpy as np
 import time
 import pandas as pd
 
-model = load_model('smnist.h5')
+model = load_model('smnist.keras')
 
 mphands = mp.solutions.hands
 hands = mphands.Hands()
@@ -21,7 +22,7 @@ h, w, c = frame.shape
 
 img_counter = 0
 analysisframe = ''
-letterpred = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y']
+letterpred = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I','J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'del', 'nothing', 'space']
 while True:
     _, frame = cap.read()
 
@@ -31,7 +32,7 @@ while True:
         print("Escape hit, closing...")
         break
     elif k%256 == 32:
-        # SPACE pressed
+        print("Space hit, capturing...")
         analysisframe = frame
         showframe = analysisframe
         cv2.imshow("Frame", showframe)
@@ -54,33 +55,22 @@ while True:
                         y_max = y
                     if y < y_min:
                         y_min = y
-                y_min -= 20
-                y_max += 20
-                x_min -= 20
-                x_max += 20 
+                y_min -= 50
+                y_max += 50
+                x_min -= 50
+                x_max += 50 
 
-        analysisframe = cv2.cvtColor(analysisframe, cv2.COLOR_BGR2GRAY)
+
+        # analysisframe = cv2.cvtColor(analysisframe, cv2.COLOR_BGR2GRAY)
         analysisframe = analysisframe[y_min:y_max, x_min:x_max]
-        analysisframe = cv2.resize(analysisframe,(28,28))
+        analysisframe = cv2.resize(analysisframe,(200,200))
 
-
-        nlist = []
-        rows,cols = analysisframe.shape
-        for i in range(rows):
-            for j in range(cols):
-                k = analysisframe[i,j]
-                nlist.append(k)
+        pixeldata = image.img_to_array(analysisframe)
+        pixeldata = np.expand_dims(pixeldata, axis=0)
+        pixeldata = pixeldata/255.0
         
-        datan = pd.DataFrame(nlist).T
-        colname = []
-        for val in range(784):
-            colname.append(val)
-        datan.columns = colname
-
-        pixeldata = datan.values
-        pixeldata = pixeldata / 255
-        pixeldata = pixeldata.reshape(-1,28,28,1)
         prediction = model.predict(pixeldata)
+        print(prediction)
         predarray = np.array(prediction[0])
         letter_prediction_dict = {letterpred[i]: predarray[i] for i in range(len(letterpred))}
         predarrayordered = sorted(predarray, reverse=True)
@@ -118,10 +108,10 @@ while True:
                     y_max = y
                 if y < y_min:
                     y_min = y
-            y_min -= 20
-            y_max += 20
-            x_min -= 20
-            x_max += 20
+            y_min -= 50
+            y_max += 50
+            x_min -= 50
+            x_max += 50
             cv2.rectangle(frame, (x_min, y_min), (x_max, y_max), (0, 255, 0), 2)
     cv2.imshow("Frame", frame)
 
